@@ -3,11 +3,11 @@
 <head>
     <title>Process Initiator Configurator</title>
     <!--  (c) 2014 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Wed Nov 05 2014 14:56:55 GMT-0800 (PST) -->
+    <!--  Build Date: Wed Nov 05 2014 15:33:12 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Wed Nov 05 2014 14:56:55 GMT-0800 (PST)";
-        var CHECKSUM = 12714769788;
+        var APP_BUILD_DATE = "Wed Nov 05 2014 15:33:12 GMT-0800 (PST)";
+        var CHECKSUM = 15265696788;
     </script>
     
     <script type="text/javascript" src="/apps/2.0rc3/sdk.js"></script>
@@ -559,6 +559,45 @@ Ext.define('Rally.technicalservices.ProcessDefinition',{
  */ 
     
 });
+Ext.define('Rally.technicalservices.dialog.ProcessRule',{
+    extend: 'Rally.ui.dialog.Dialog',
+    logger: new Rally.technicalservices.Logger(),
+    autoShow: true,
+    draggable: true,
+    width: 400,
+    constructor: function(config){
+         Ext.apply(this,config);
+	     
+   	     this.title = this.processDefinition.processName;
+         this.items = this._initializeItems();
+         this.callParent(arguments);
+    },
+    _initializeItems: function(rec){
+  	     var items = [];
+  	     items.push({xtype:'container',itemId:'message_box'});
+  	     items.push({xtype:'container',itemId: 'detail-container'});
+  	     items.push({
+             xtype     : 'rallybutton',
+             text      : 'Save',
+             scope: this,
+             handler      : this._save
+     	});
+  	     items.push( {
+             xtype     : 'rallybutton',
+             text      : 'Cancel',
+             scope: this,
+             handler      : this._cancel
+         });
+  	     return items;
+    },
+    _save: function(){
+    	this._cancel();
+
+    },
+     _cancel: function(){
+    	this.destroy();
+    }
+});
 Ext.define('CustomApp', {
     extend: 'Rally.app.App',
     componentCls: 'app',
@@ -577,6 +616,7 @@ Ext.define('CustomApp', {
     },
     _addNewProcess: function(){
     	this.logger.log('_addNewProcess');
+    	this._displayProcessDetail('');
     },
     _editProcess: function(grid, row){
     	this.logger.log('_editProcess',grid,row);
@@ -604,9 +644,52 @@ Ext.define('CustomApp', {
     _displayProcessDetail: function(process_name){
     	this.logger.log('_displayProcessDetail',process_name);
     	this._clearDisplay(); 
+    	var container = this.down('#display_box');
+    	
+    	container.add({
+    		xtype: 'rallytextfield',
+    		fieldLabel: 'Process Name (must be unique)'
+    	});
+    	container.add({
+    		xtype: 'rallytextfield',
+    		fieldLabel: 'Short Name (used for the button text in the process grid)'
+    	});
+        var filters = Ext.create('Rally.data.wsapi.Filter',{
+            property:'Restorable',
+            value: 'true'
+        });
+        filters = filters.or(Ext.create('Rally.data.wsapi.Filter',{
+            property:'Ordinal',
+            value: 0
+        }));
+        container.add({
+            xtype:'rallycombobox',
+            displayField: 'DisplayName',
+            autoExpand: true,
+            storeConfig: {
+                autoLoad: true,
+                model:'TypeDefinition',
+               filters: filters
+            },
+            fieldLabel: 'Rally Type:',
+            valueField:'TypePath'
+        });
+    	container.add({
+    		xtype: 'rallybutton',
+    		text: '+Add Rule',
+    		scope: this,
+    		handler: this._addRule
+    	});
+    },
+    _populateFieldSelector: function(cb, new_value){
     	
     },
+    _addRule: function(){
+   	   	dlg = Ext.create('Rally.technicalservices.dialog.ProcessRule', {
 
+    	 	});
+  	   	dlg.show();    
+  	},
     /*
      * Functions to display the list of processes that can be edited or deleted 
      */
