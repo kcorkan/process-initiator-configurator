@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Process Initiator Configurator</title>
+    <!--  (c) 2013 Rally Software Development Corp.  All Rights Reserved. -->
+    <!--  Build Date: Wed Nov 05 2014 14:34:01 GMT-0800 (PST) -->
+    
+    <script type="text/javascript">
+        var APP_BUILD_DATE = "Wed Nov 05 2014 14:34:01 GMT-0800 (PST)";
+        var CHECKSUM = [%= checksum %];
+    </script>
+    
+    <script type="text/javascript" src="/apps/2.0rc3/sdk.js"></script>
+
+    <script type="text/javascript">
+        Rally.onReady(function() {
+            
+            
+               Rally.launchApp('CustomApp', {
+                   name: 'Process Initiator Configurator'
+               });
+        });
+    </script>
+    
+    <style type="text/css">
+
+.app {
+}
+.tsinfolink {
+    position:absolute;
+    right:0px;
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    text-align: center;
+    color: white;
+    background: #C0C0C0;
+    border-style: solid;
+    border-width: 1px;
+    margin-top: 25px;
+    margin-right: 5px;
+    cursor: pointer;
+}
+.ts-secondary-button {
+	color: #00A9E0;
+	font-family: NotoSans, Helvetica, Arial;
+	background-color: #FFFFFF;
+	border:1px solid #00A9E0;
+}
+.ts-secondary-button:hover {
+	color: #00A9E0;
+	font-family: NotoSans, Helvetica, Arial;
+	background-color: transparent;
+	cursor: pointer;
+	border:1px solid #00A9E0;
+
+}
+    </style>
+
+</head>
+<body></body>
+</html>

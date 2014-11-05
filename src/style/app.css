@@ -15,3 +15,17 @@
     margin-right: 5px;
     cursor: pointer;
 }
+.ts-secondary-button {
+	color: #00A9E0;
+	font-family: NotoSans, Helvetica, Arial;
+	background-color: #FFFFFF;
+	border:1px solid #00A9E0;
+}
+.ts-secondary-button:hover {
+	color: #00A9E0;
+	font-family: NotoSans, Helvetica, Arial;
+	background-color: transparent;
+	cursor: pointer;
+	border:1px solid #00A9E0;
+
+}

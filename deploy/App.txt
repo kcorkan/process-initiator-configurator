@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Process Initiator Configurator</title>
+    <!--  (c) 2014 Rally Software Development Corp.  All Rights Reserved. -->
+    <!--  Build Date: Wed Nov 05 2014 14:34:01 GMT-0800 (PST) -->
+    
+    <script type="text/javascript">
+        var APP_BUILD_DATE = "Wed Nov 05 2014 14:34:01 GMT-0800 (PST)";
+        var CHECKSUM = 11509216556;
+    </script>
+    
+    <script type="text/javascript" src="/apps/2.0rc3/sdk.js"></script>
+
+    <script type="text/javascript">
+        Rally.onReady(function() {
+             
+/**
+ * A link that pops up a version dialog box
+ */
+
+Ext.define('Rally.technicalservices.InfoLink',{
+    extend: 'Ext.Component',
+    alias: 'widget.tsinfolink',
+    
+    /**
+     * @cfg {String} informationHtml
+     * Additional text to be displayed on the popup dialog (for exmaple,
+     * to add a description of the app's use or functionality)
+     */
+    informationHtml: null,
+    
+    /**
+     * 
+     * cfg {String} title
+     * The title for the dialog box
+     */
+     title: "Build Information",
+    
+    renderTpl: "<div id='{id}-infolinkWrap' class='tsinfolink'>i</div>",
+
+    initComponent: function() {
+        this.callParent(arguments);
+       
+    },
+    
+    onRender: function() {
+        this.callParent(arguments);
+        this.mon(this.el,'click',this.onClick,this);
+    },
+    _generateChecksum: function(string){
+        var chk = 0x12345678,
+            i;
+        string = string.replace(/var CHECKSUM = .*;/,"");
+        string = string.replace(/\s/g,"");  //Remove all whitespace from the string.
+        
+        for (i = 0; i < string.length; i++) {
+            chk += (string.charCodeAt(i) * i);
+        }
+    
+        return chk;
+    },
+    _checkChecksum: function(container) {
+        var me = this;
+        Ext.Ajax.request({
+            url: document.URL,
+            params: {
+                id: 1
+            },
+            success: function (response) {
+                text = response.responseText;
+                if ( CHECKSUM ) {
+                    if ( CHECKSUM !== me._generateChecksum(text) ) {
+                        console.log("Checksums don't match!");
+                        if ( me.dialog ) {
+                            me.dialog.add({xtype:'container',html:'Checksums do not match'});
+                        }
+                    }
+                }
+            }
+        });
+    },
+    onClick: function(e) {
+        var me = this;
+        this._checkChecksum(this);
+        
+        var dialog_items = [];
+        
+        if ( this.informationHtml ) {
+            dialog_items.push({
+                xtype:'container',
+                html: this.informationHtml
+            });
+        }
+                
+        dialog_items.push({
+            xtype:'container',
+            html:"This app was created by the Rally Technical Services Team."
+        });
+        
+        if ( APP_BUILD_DATE ) {
+            dialog_items.push({
+                xtype:'container',
+                html:'Build date/time: ' + APP_BUILD_DATE
+            });
+        }
+        
+        if (this.dialog){this.dialog.destroy();}
+        this.dialog = Ext.create('Rally.ui.dialog.Dialog',{
+            defaults: { padding: 5, margin: 5 },
+            closable: true,
+            draggable: true,
+            title: me.title,
+            items: dialog_items
+        });
+        this.dialog.show();
+    }
+});
+
+/*
+ */
+Ext.define('Rally.technicalservices.Logger',{
+    constructor: function(config){
+        Ext.apply(this,config);
+    },
+    log: function(args){
+        var timestamp = "[ " + Ext.util.Format.date(new Date(), "Y-m-d H:i:s.u") + " ]";
+        //var output_args = arguments;
+        //output_args.unshift( [ "[ " + timestamp + " ]" ] );
+        //output_args = Ext.Array.push(output_args,arguments);
+        
+        var output_args = [];
+        output_args = Ext.Array.push(output_args,[timestamp]);
+        output_args = Ext.Array.push(output_args, Ext.Array.slice(arguments,0));
+
+        window.console && console.log.apply(console,output_args);
+    }
+
+});
+
+Ext.override(Ext.grid.column.Action, {
+
+	buttonText: 'myButton',
+    defaultRenderer: function(v, meta, record, rowIdx, colIdx, store, view){
+    	var me = this,
+            prefix = Ext.baseCSSPrefix,
+            scope = me.origScope || me,
+            items = me.items,
+            len = items.length,
+            i = 0,
+            item, ret, disabled, tooltip;
+ 
+        // Allow a configured renderer to create initial value (And set the other values in the "metadata" argument!)
+        // Assign a new variable here, since if we modify "v" it will also modify the arguments collection, meaning
+        // we will pass an incorrect value to getClass/getTip
+        ret = Ext.isFunction(me.origRenderer) ? me.origRenderer.apply(scope, arguments) || '' : '';
+
+        meta.tdCls += ' ' + Ext.baseCSSPrefix + 'action-col-cell';
+        for (; i < len; i++) {
+            item = items[i];
+
+            disabled = item.disabled || (item.isDisabled ? item.isDisabled.call(item.scope || scope, view, rowIdx, colIdx, item, record) : false);
+            tooltip = disabled ? null : (item.tooltip || (item.getTip ? item.getTip.apply(item.scope || scope, arguments) : null));
+
+            // Only process the item action setup once.
+            if (!item.hasActionConfiguration) {
+
+                // Apply our documented default to all items
+                item.stopSelection = me.stopSelection;
+                item.disable = Ext.Function.bind(me.disableAction, me, [i], 0);
+                item.enable = Ext.Function.bind(me.enableAction, me, [i], 0);
+                item.hasActionConfiguration = true;
+            }
+
+       ret += '<button class="' + me.buttonCls + ' ' + prefix + 'action-col-' + String(i) + '">' + me.buttonText + '</button>';     
+        }
+        return ret;    
+    },
+});
+Ext.define('Rally.technicalservices.util.PreferenceSaving',{
+    singleton: true,
+    logger: new Rally.technicalservices.Logger(),
+    PREF_CHUNK_LEN: 30000,
+    findKeysAndCreateDate: function(prefix, workspace){
+        this.logger.log( "findKeysAndLastModified", prefix );
+        var deferred = Ext.create('Deft.Deferred');
+        Ext.create('Rally.data.wsapi.Store', {
+            model: 'Preference',
+            fetch: ['Name','CreationDate'],
+            limit: 'Infinity',
+            context: {workspace: workspace},
+            sorters: [ { property: 'Name', direction: 'ASC' } ],
+            autoLoad: true,
+            filters: [ { property: 'Name', operator: 'contains', value: prefix } ],
+            listeners: {
+                scope: this, 
+                load: function(store,data,success) {
+                    this.logger.log('findKeysAndLastModified load', success);
+                    if (success) {
+                        var pref_keys = {};
+                        Ext.each(data, function(rec){
+                            pref_keys[rec.get('Name')] = rec.get('CreationDate');
+                        });
+                        deferred.resolve(pref_keys);
+                    } else {
+                        deferred.reject();
+                    }
+                }
+            }
+        });
+        return deferred.promise;        
+    },
+    saveAsJSON: function(name, object, workspace, appId, filterByUser, project){
+        /*
+         * This function does the following:
+         * 1- Cleans up any existing preferences with this name
+         * 2- Saves the object as JSON encoded preference.  
+         * If the JSON encoded string is larger than the limit, then
+         * the string is broken into pieces and saved.  
+         * 3- Saves meta data (.lastupdate)
+         * 
+         */
+        if (appId == undefined) {appId == null;}
+        if (project == undefined) {project == null;}
+        if (filterByUser == undefined) {filterByUser = false;}
+        
+        var deferred = Ext.create('Deft.Deferred');
+        
+        var pref_chunks = this._getJSONChunksFromObject(object);
+        var prefs = {};
+        Ext.each(pref_chunks, function(chunk, index){
+            var pref_name = this._getPrefName(name,index);
+            prefs[pref_name] = chunk;
+        }, this);
+        
+        //remove old prefs for name....
+        this._cleanPrefs(name, workspace, appId,filterByUser,project).then({
+            scope: this,
+            success: function(){
+                this.logger.log('preferences cleaned, now saving new ones');
+                this.save(prefs,workspace, appId,filterByUser,project).then({
+                    scope: this,
+                    success: function(){
+                        deferred.resolve();
+                    },
+                    failure: function(error){
+                        deferred.reject(error);
+                    }
+                });
+            }, 
+            failure: function(error){
+                this.logger.log('failed to clean out preferences: ', error);
+                deferred.reject('failed to clean out preferences: ', error);
+            }
+        });
+        return deferred.promise; 
+    },
+    _cleanPrefs: function(prefix,workspace, appId,filterByUser,project){
+        this.logger.log('_cleanPrefs');
+        var deferred = Ext.create('Deft.Deferred');
+        this._findPreferencesContainingKey(prefix, workspace).then({
+            scope: this,
+            success: function(records){
+                this.logger.log('Destroying ' + records.length + ' records.');
+                if (records.length > 0){
+                    this._destroyRecords(records).then({
+                        success: function(){
+                            deferred.resolve(); 
+                        }
+                    });
+                } else {
+                    deferred.resolve();
+                }
+                
+            },
+            failure: function(){
+                deferred.reject('Failed to find preferences with key ', prefix);
+            }
+        });
+        return deferred.promise;
+    },
+    _getPrefName: function(name,suffix){
+        return name.concat(".").concat(suffix.toString());
+    },
+    _getJSONChunksFromObject: function(object){
+        var pref = Ext.JSON.encode(object);
+        var pref_chunks = [];
+        
+        while (pref.length > this.PREF_CHUNK_LEN){
+            pref_chunks.push(pref.substr(0,this.PREF_CHUNK_LEN));
+            pref = pref.substr(this.PREF_CHUNK_LEN);
+        }
+        pref_chunks.push(pref);
+        return pref_chunks;
+    },
+    _getObjectFromJSONChunks: function(json_chunks){
+        var json_string = '';
+        Ext.Array.each(json_chunks, function(chunk){
+            json_string += chunk;
+        });
+        var obj = Ext.JSON.decode(json_string);
+        return obj; 
+    },
+    _getPrefSuffix: function(name){
+        var suffix = name.substr(name.lastIndexOf('.')+1);
+        return suffix;  
+    },
+    _getPrefRoot: function(name){
+        var root = name.substr(0, name.lastIndexOf('.'));
+        return root;  
+    },
+    fetchFromJSON: function(name, workspace){
+        var deferred = Ext.create('Deft.Deferred');
+        //Returns an object retrieved from a JSON encoded preference.
+        var json_chunks = new Ext.util.HashMap();
+        var last_updated = new Ext.util.HashMap();
+        this._findPreferencesContainingKey(name, workspace).then({
+            scope:this,
+            success: function(data){
+                this.logger.log('fetchFromJSON Success.',data);
+                //var json_chunks = [];
+                //var last_updated = '';
+                Ext.each(data, function(rec){
+                    var key = this._getPrefRoot(rec.get('Name'));
+                    if (!json_chunks.containsKey(key)){
+                        json_chunks.add(key,[]);
+                        last_updated.add(key,rec.get('CreationDate'));
+                    }
+                    var idx =  this._getPrefSuffix(rec.get('Name'));
+                    var val = rec.get('Value');
+                    this.logger.log('key:',key,' idx:',idx);
+                    if (!isNaN(idx)){
+                        json_chunks.get(key)[idx] = val;
+                    } 
+                },this);
+                
+                var objs = new Ext.util.HashMap();
+                json_chunks.each(function(key,value,length){
+                    objs.add(key,this._getObjectFromJSONChunks(value));
+                },this);
+
+                deferred.resolve([objs,last_updated]);
+            },
+            failure: function(error) {
+                deferred.reject(error);
+            }
+        });
+        return deferred.promise; 
+    },
+    save: function(prefs, workspace, appId, filterByUser, project){
+        //Set defaults
+        if (appId == undefined) {appId == null;}
+        if (project == undefined) {project == null;}
+        if (filterByUser == undefined) {filterByUser = false;}
+        
+        var deferred = Ext.create('Deft.Deferred');
+        
+        Rally.data.PreferenceManager.update({
+            appID: appId,
+            project: project,
+            workspace: workspace,
+            filterByUser: filterByUser,
+            settings: prefs,
+            scope: this, 
+            success: function() {
+                this.logger.log('Successfully saved preference:',prefs);
+                deferred.resolve();
+            },
+            failure: function(error){
+                this.logger.log('Failed to save preference',prefs, error);
+                deferred.reject('Failed to save preferences.  Error:' + error);
+            }
+        });
+        return deferred.promise;
+    },
+    _findPreferencesContainingKey: function( key_part, workspace ) {
+        this.logger.log( "_findPreferencesContainingKey", key_part );
+        var deferred = Ext.create('Deft.Deferred');
+        Ext.create('Rally.data.wsapi.Store', {
+            model: 'Preference',
+            fetch: ['Name','Value','CreationDate'],
+            limit: 'Infinity',
+            context: {workspace: workspace},
+            sorters: [ { property: 'Name', direction: 'ASC' } ],
+            autoLoad: true,
+            filters: [ { property: 'Name', operator: 'contains', value: key_part } ],
+            listeners: {
+                scope: this, 
+                load: function(store,data,success) {
+                    this.logger.log('_findPreferencesContainingKey load', success);
+                    if (success) {
+                        deferred.resolve(data);
+                    } else {
+                        deferred.reject();
+                    }
+                }
+            }
+        });
+        return deferred.promise;
+    },
+    _destroyRecords: function(records){
+        var promises = [];
+        var deferred = Ext.create('Deft.Deferred');
+        Ext.each(records,function(rec){
+            promises.push(this._destroyRecord(rec));
+        }, this);
+        Deft.Promise.all(promises).then({
+            scope: this,
+            success: function(successes){
+                deferred.resolve(successes);
+                //TODO process to see if everything succeeeded
+            }
+        });
+        return deferred.promise;
+        
+    },
+    _destroyRecord: function(record){
+        var deferred = Ext.create('Deft.Deferred');
+        this.logger.log('destroying ' + record.get('Name'));
+        record.destroy({
+            callback: function(records, operation, success){
+                
+                deferred.resolve(success); 
+            }
+        });
+        return deferred.promise;
+    }
+   
+
+});
+Ext.define('Rally.technicalservices.ProcessDefinition',{
+    logger: new Rally.technicalservices.Logger(),
+    processName: '',
+    shortName: '',
+    /*
+     * processType:  Type of process this is enforcing:
+     * 		-- new  : creation of a new artifact with rules
+     * 		-- edit : editing of an existing artifact with rules
+     */
+    processType: 'edit', //edit is default
+    rallyType: '',  //Required
+    /*
+     * rallyField:  The field that the processDetail rules belong to.  If this is null, then 
+     * this process definition applies to new objects.  
+     * 
+     */
+    rallyField: '',
+    /*
+     * processDetail - current: The rules for this process
+     * 
+     *    EXAMPLE (edit):
+     *    {
+     *    	<triggerValue>: ['requiredfield1','requiredfield2',...] 
+     *    }
+     *    
+     *    EXAMPLE (new):
+     *    
+     *    {
+     *    	 required: ['requiredfield1','requiredfield2',...] 
+     *    }
+     * 
+     */
+    processDetail: {}, 
+    /*
+     * processDetail - wannabe: The rules for this process
+     * 
+     *    EXAMPLE:
+     *    {
+     *    	type:  presence | inclusion* | exclusion* | format*   (*not implemented yet),
+     *      field:  the field that the rule is applied to (e.g. FixedInBuild),
+     *      triggerValues: [] Array of values that trigger this rule (e.g. ['Fixed', 'Closed'];  If this is empty, then it applies to all objects
+     *    }
+     * 
+     */
+ 
+    constructor: function(config){
+        Ext.apply(this,config);
+    },
+    isNew: function(){
+    	return (this.processType == 'new');
+    },
+    /*
+     * getProcessFields: returns the fields that are defined in all the rules for the current process
+     * 
+     */
+    getProcessFields: function(){
+    	var fields = [];
+    	if (this.rallyField){
+    		fields.push(this.rallyField);
+    	}
+    	Ext.each(Object.keys(this.processDetail), function(pdkey){
+			Ext.each(this.processDetail[pdkey], function(pdd){
+				fields.push(pdd);
+			}, this);
+		}, this);
+    	return fields; 
+    },
+    
+    /*
+     * getTriggeredProcessFields: returns the fields that are triggered by for the current value of the process field
+     * 
+     */
+    getTriggeredProcessFields: function(value){
+    	return this.processDetail[value];
+    },
+    
+    validate: function(detail_field, detail_value, trigger_value){
+    	this.logger.log('validate',trigger_value,detail_field,detail_value);
+    	var req_fields = [];
+    	
+    	if (this.isNew()){
+    		return this._validateNew(detail_field,detail_value);
+    	}
+    	
+    	if (Ext.Array.contains(Object.keys(this.processDetail), trigger_value.toString())){
+        	req_fields = this.processDetail[trigger_value.toString()];
+    	} else {
+    		req_fields = this.processDetail.required;
+    	}
+    	if (Ext.Array.contains(req_fields, detail_field)){
+    		if (detail_value && detail_value.toString().length > 0){
+    			return {valid: true};  
+    		}
+    	} else {
+			return {valid: true};  
+    	}
+    	var msg = Ext.String.format("A value for field {0} is required when {1} = {2}.", detail_field, this.rallyField, trigger_value);
+		return {valid: false, message: msg};  
+
+    },
+    _validateNew: function(detail_field, detail_value){
+    	var req_fields = this.processDetail.required;
+    	console.log(req_fields,this.processDetail.required, this.processDetail['required']);
+    	if (Ext.Array.contains(req_fields, detail_field)){
+    		console.log('array contains ', detail_field, detail_value);
+    		if (detail_value && detail_value.length > 0){
+    			return {valid: true};  
+    		}
+    	} else {
+			return {valid: true};  
+    	}
+    	var msg = Ext.String.format("A value for field {0} is required for a new {1}.", detail_field, this.rallyType);
+		return {valid: false, message: msg};  
+    }
+    
+/*
+ * This is just an example of validations in the model object.  
+ * Trying to make the processDetail similiar so that someday we may be able to take
+ * advantage of this functionality
+ * 
+ * validations: [
+ *	                {type: 'presence',  field: 'age'},
+ *                  {type: 'length',    field: 'name',     min: 2},
+ *                  {type: 'inclusion', field: 'gender',   list: ['Male', 'Female']},
+ *                  {type: 'exclusion', field: 'username', list: ['Admin', 'Operator']},
+ *                  {type: 'format',    field: 'username', matcher: /([a-z]+)[0-9]{2,3}/}
+ *               ]
+ * 
+ */ 
+    
+});
+Ext.define('CustomApp', {
+    extend: 'Rally.app.App',
+    componentCls: 'app',
+    logger: new Rally.technicalservices.Logger(),
+    items: [
+        {xtype:'container',itemId:'button_box', padding: 10},
+        {xtype:'container',itemId:'grid_box'},
+        {xtype:'tsinfolink'}
+    ],
+    launch: function() {
+
+    	this.down('#button_box').add({
+    		xtype: 'rallybutton',
+    		text: '+Add New',
+    		scope: this,
+    		handler: this._addNewProcess
+    	});
+    	
+    	this.down('#grid_box').add({
+    		xtype: 'rallygrid',
+    		store: this._fetchProcessStore(),
+    		columnCfgs: this._getProcessGridColumnCfgs()
+    	});
+    },
+    _addNewProcess: function(){
+    	this.logger.log('_addNewProcess');
+    },
+    _fetchProcessStore: function(){
+    	this.logger.log('_fetchProcessStore');
+    	var store = Ext.create('Rally.data.custom.Store', {
+    	        data: [{
+    	        	'Name': 'User Story Blocked Process',
+    	        	'ShortName' : 'Block',
+    	        	'Type' : 'UserStory',
+    	        	'Field':'Blocked'
+    	        },{
+    	        	'Name': 'Add New Feature',
+    	        	'ShortName' : 'AddNew',
+    	        	'Type' : 'PortfolioItem/Feature',
+    	        	'Field':''
+    	        }]
+    	    });
+    	return store; 
+    },
+    _getProcessGridColumnCfgs: function(){
+    	this.logger.log('_getProcessGridColumnCfgs');
+    	var me = this;
+    	
+      	var columns = [{ 
+            text: 'Name',
+            dataIndex: 'Name',
+            width: 200,
+        },{
+            text: 'Short Name',
+            dataIndex: 'ShortName',
+        },{
+        	text: 'Type',
+        	dataIndex: 'Type'
+        },{
+        	text: 'Field',
+        	dataIndex: 'Field'
+        },{
+			xtype: 'actioncolumn',
+			buttonText: 'Edit',
+			buttonCls: 'ts-secondary-button',
+			scope: this,
+			items: [{
+				scope: this,
+                handler: function(grid, row, col) {
+                	me._editProcess(grid, row);
+                }
+            }]
+		},{
+			xtype: 'actioncolumn',
+			buttonText: 'Delete',
+			buttonCls: 'ts-secondary-button',
+			scope: this,
+			items: [{
+				scope: this,
+                handler: function(grid, row, col) {
+                	me._deleteProcess(grid, row);
+                }
+            }]
+		}]; 
+      	return columns; 
+    },
+    _editProcess: function(grid, row){
+    	this.logger.log('_editProcess',grid,row);
+    },
+    _deleteProcess: function(grid, row){
+    	this.logger.log('_deleteProcess',grid,row);
+    }
+});
+            
+               Rally.launchApp('CustomApp', {
+                   name: 'Process Initiator Configurator'
+               });
+        });
+    </script>
+    
+    <style type="text/css">
+
+.app {
+}
+.tsinfolink {
+    position:absolute;
+    right:0px;
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    text-align: center;
+    color: white;
+    background: #C0C0C0;
+    border-style: solid;
+    border-width: 1px;
+    margin-top: 25px;
+    margin-right: 5px;
+    cursor: pointer;
+}
+.ts-secondary-button {
+	color: #00A9E0;
+	font-family: NotoSans, Helvetica, Arial;
+	background-color: #FFFFFF;
+	border:1px solid #00A9E0;
+}
+.ts-secondary-button:hover {
+	color: #00A9E0;
+	font-family: NotoSans, Helvetica, Arial;
+	background-color: transparent;
+	cursor: pointer;
+	border:1px solid #00A9E0;
+
+}
+    </style>
+
+</head>
+<body></body>
+</html>
