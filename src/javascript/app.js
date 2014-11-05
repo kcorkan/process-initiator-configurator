@@ -4,11 +4,55 @@ Ext.define('CustomApp', {
     logger: new Rally.technicalservices.Logger(),
     items: [
         {xtype:'container',itemId:'button_box', padding: 10},
-        {xtype:'container',itemId:'grid_box'},
+        {xtype:'container',itemId:'display_box'},
         {xtype:'tsinfolink'}
     ],
     launch: function() {
+    	this._displayProcessList();
+    },
+    _clearDisplay: function(){
+    	this.down('#button_box').removeAll();
+    	this.down('#display_box').removeAll();
+    },
+    _addNewProcess: function(){
+    	this.logger.log('_addNewProcess');
+    },
+    _editProcess: function(grid, row){
+    	this.logger.log('_editProcess',grid,row);
+    },
+    _deleteProcess: function(grid, row){
+    	this.logger.log('_deleteProcess',grid,row);
+    	
+    	var process_name = grid.getStore().getAt(row).get('Name');
+    	var msg = Ext.String.format("Are you sure you want to delete the process '{0}'?  This action cannot be undone.", process_name);
+    	Ext.create('Rally.ui.dialog.ConfirmDialog', {
+    	    message: msg,
+    	    title: 'Confirm Delete',
+    	    confirmLabel: 'Yes, Delete',
+    	    listeners: {
+    	    	scope: this,
+    	        confirm: function(){
+    	         this.logger.log('Delete Requested');
+    	        }
+    	    }
+    	});
+    },
+    /*
+     * Functions to display process detail
+     */
+    _displayProcessDetail: function(process_name){
+    	this.logger.log('_displayProcessDetail',process_name);
+    	this._clearDisplay(); 
+    	
+    },
 
+    /*
+     * Functions to display the list of processes that can be edited or deleted 
+     */
+    _displayProcessList: function(){
+    	this.logger.log('_displayProcessList');
+    	this._clearDisplay(); 
+    	
     	this.down('#button_box').add({
     		xtype: 'rallybutton',
     		text: '+Add New',
@@ -16,14 +60,11 @@ Ext.define('CustomApp', {
     		handler: this._addNewProcess
     	});
     	
-    	this.down('#grid_box').add({
+    	this.down('#display_box').add({
     		xtype: 'rallygrid',
     		store: this._fetchProcessStore(),
     		columnCfgs: this._getProcessGridColumnCfgs()
     	});
-    },
-    _addNewProcess: function(){
-    	this.logger.log('_addNewProcess');
     },
     _fetchProcessStore: function(){
     	this.logger.log('_fetchProcessStore');
@@ -84,10 +125,4 @@ Ext.define('CustomApp', {
 		}]; 
       	return columns; 
     },
-    _editProcess: function(grid, row){
-    	this.logger.log('_editProcess',grid,row);
-    },
-    _deleteProcess: function(grid, row){
-    	this.logger.log('_deleteProcess',grid,row);
-    }
 });
