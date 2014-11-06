@@ -7,20 +7,48 @@ Ext.define('CustomApp', {
         {xtype:'container',itemId:'display_box'},
         {xtype:'tsinfolink'}
     ],
+    PROCESS_DEFINITION_PREFIX: 'ProcessInitiator.',
     launch: function() {
     	this._displayProcessList();
     },
     _addNewProcess: function(){
     	this.logger.log('_addNewProcess');
-   	   	dlg = Ext.create('Rally.technicalservices.dialog.ProcessDefinition', {y: 0});
+   	   	dlg = Ext.create('Rally.technicalservices.dialog.ProcessDefinition', {
+   	   		y: 0,
+   	   		workspace: this.getContext().getWorkspace(),
+   	   		PROCESS_DEFINITION_PREFIX: this.PROCESS_DEFINITION_PREFIX,
+   	   		modal: true,
+   	   		listeners: {
+   	   			scope: this,
+   	   			processDefinitionUpdated: this._displayProcessList
+   	   		}
+   	   	});
 	   	dlg.show();    
+	   	
     },
     _editProcess: function(grid, row){
     	this.logger.log('_editProcess',grid,row);
+    	
+    	var key = grid.getStore().getAt(row).get('key');
+    	var pd = this.processDefinitionCache.get(key);
+   	   	dlg = Ext.create('Rally.technicalservices.dialog.ProcessDefinition', {
+   	   		y: 0,
+   	   		workspace: this.getContext().getWorkspace(),
+   	   		processDefinition: pd,
+   	   		PROCESS_DEFINITION_PREFIX: this.PROCESS_DEFINITION_PREFIX,
+   	   		modal: true,
+   	   		listeners: {
+   	   			scope: this,
+   	   			processDefinitionUpdated: this._displayProcessList
+   	   		}
+    	   	});
+	   	dlg.show();    
+	   	
     },
     _deleteProcess: function(grid, row){
     	this.logger.log('_deleteProcess',grid,row);
     	
+    	var key = grid.getStore().getAt(row).get('key');
     	var process_name = grid.getStore().getAt(row).get('Name');
     	var msg = Ext.String.format("Are you sure you want to delete the process '{0}'?  This action cannot be undone.", process_name);
     	Ext.create('Rally.ui.dialog.ConfirmDialog', {
@@ -31,11 +59,24 @@ Ext.define('CustomApp', {
     	    	scope: this,
     	        confirm: function(){
     	         this.logger.log('Delete Requested');
+    	         this._actuallyDeleteProcess(key);
+
     	        }
     	    }
     	});
     },
-
+    _actuallyDeleteProcess: function(pref_key){
+    	this.logger.log('_actuallyDeleteProcess');
+    	Rally.technicalservices.util.PreferenceSaving._cleanPrefs(pref_key,this.getContext().getWorkspace()).then({
+    		scope: this, 
+    		failure: function(error){
+    			alert(error);
+    		},
+    		success: function() {
+   	         this._displayProcessList();
+    		}
+    	});
+    },
     /*
      * Functions to display the list of processes that can be edited or deleted 
      */
@@ -50,29 +91,48 @@ Ext.define('CustomApp', {
     		scope: this,
     		handler: this._addNewProcess
     	});
-    	
-    	this.down('#display_box').add({
-    		xtype: 'rallygrid',
-    		store: this._fetchProcessStore(),
-    		columnCfgs: this._getProcessGridColumnCfgs()
+    	this._fetchProcessStore().then({
+    		scope: this,
+    		success: function(store){
+    	    	this.down('#display_box').add({
+    	    		xtype: 'rallygrid',
+    	    		store: store,
+    	    		columnCfgs: this._getProcessGridColumnCfgs()
+    	    	});
+    		}
     	});
     },
     _fetchProcessStore: function(){
+    	var deferred = Ext.create('Deft.Deferred');
+    	
     	this.logger.log('_fetchProcessStore');
-    	var store = Ext.create('Rally.data.custom.Store', {
-    	        data: [{
-    	        	'Name': 'User Story Blocked Process',
-    	        	'ShortName' : 'Block',
-    	        	'Type' : 'UserStory',
-    	        	'Field':'Blocked'
-    	        },{
-    	        	'Name': 'Add New Feature',
-    	        	'ShortName' : 'AddNew',
-    	        	'Type' : 'PortfolioItem/Feature',
-    	        	'Field':''
-    	        }]
-    	    });
-    	return store; 
+    	Rally.technicalservices.util.PreferenceSaving.fetchFromJSON(this.PROCESS_DEFINITION_PREFIX, 
+    			this.getContext().getWorkspace()).then({
+    		scope: this,
+    		success: function(obj){
+    			 var keys = obj[0].getKeys();
+    			 this.processDefinitionCache = obj[0];
+                 var data = [];
+                 Ext.each(keys, function(key){
+                	 var pd = obj[0].get(key);
+                	 data.push({
+                		 'key': key,
+                		 'Name': pd.processName,
+                		 'ShortName': pd.shortName,
+                		 'ObjectType': pd.rallyType,
+                		 'ProcessType': pd.processType,
+                		 'Field': pd.rallyField,
+                	 });
+                 }, this);
+
+                 var store = Ext.create('Rally.data.custom.Store',{
+                     data: data,
+                     limit: 'infinity'
+                 });
+                 deferred.resolve(store);
+    		}
+    	});
+    	return deferred.promise; 
     },
     _getProcessGridColumnCfgs: function(){
     	this.logger.log('_getProcessGridColumnCfgs');
@@ -86,8 +146,11 @@ Ext.define('CustomApp', {
             text: 'Short Name',
             dataIndex: 'ShortName',
         },{
-        	text: 'Type',
-        	dataIndex: 'Type'
+        	text: 'Process Type',
+        	dataIndex: 'ProcessType'
+        },{
+        	text: 'Object Type',
+        	dataIndex: 'ObjectType'
         },{
         	text: 'Field',
         	dataIndex: 'Field'

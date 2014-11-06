@@ -30,7 +30,7 @@ Ext.define('Rally.technicalservices.ProcessDefinition',{
      *    }
      * 
      */
-    processDetail: {}, 
+    processDetail: null, 
     /*
      * processDetail - wannabe: The rules for this process
      * 
@@ -58,6 +58,9 @@ Ext.define('Rally.technicalservices.ProcessDefinition',{
     	if (this.rallyField){
     		fields.push(this.rallyField);
     	}
+    	if (this.processDetail == null) {
+    		this.processDetail = {};
+    	}
     	Ext.each(Object.keys(this.processDetail), function(pdkey){
 			Ext.each(this.processDetail[pdkey], function(pdd){
 				fields.push(pdd);
@@ -71,6 +74,10 @@ Ext.define('Rally.technicalservices.ProcessDefinition',{
      * 
      */
     getTriggeredProcessFields: function(value){
+    	if (this.processDetail == null) {
+    		this.processDetail = {};
+    	}
+
     	return this.processDetail[value];
     },
     
@@ -80,6 +87,9 @@ Ext.define('Rally.technicalservices.ProcessDefinition',{
     	
     	if (this.isNew()){
     		return this._validateNew(detail_field,detail_value);
+    	}
+    	if (this.processDetail == null) {
+    		this.processDetail = {};
     	}
     	
     	if (Ext.Array.contains(Object.keys(this.processDetail), trigger_value.toString())){
@@ -99,6 +109,10 @@ Ext.define('Rally.technicalservices.ProcessDefinition',{
 
     },
     _validateNew: function(detail_field, detail_value){
+    	if (this.processDetail == null) {
+    		this.processDetail = {};
+    	}
+
     	var req_fields = this.processDetail.required;
     	console.log(req_fields,this.processDetail.required, this.processDetail['required']);
     	if (Ext.Array.contains(req_fields, detail_field)){
