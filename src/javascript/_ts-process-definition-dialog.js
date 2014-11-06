@@ -1,4 +1,4 @@
-Ext.define('Rally.technicalservices.dialog.ProcessRule',{
+Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     extend: 'Rally.ui.dialog.Dialog',
     logger: new Rally.technicalservices.Logger(),
     autoShow: true,
