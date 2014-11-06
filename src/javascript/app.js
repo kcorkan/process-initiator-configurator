@@ -10,13 +10,10 @@ Ext.define('CustomApp', {
     launch: function() {
     	this._displayProcessList();
     },
-    _clearDisplay: function(){
-    	this.down('#button_box').removeAll();
-    	this.down('#display_box').removeAll();
-    },
     _addNewProcess: function(){
     	this.logger.log('_addNewProcess');
-    	this._displayProcessDetail('');
+   	   	dlg = Ext.create('Rally.technicalservices.dialog.ProcessRule', {});
+	   	dlg.show();    
     },
     _editProcess: function(grid, row){
     	this.logger.log('_editProcess',grid,row);
@@ -38,64 +35,14 @@ Ext.define('CustomApp', {
     	    }
     	});
     },
-    /*
-     * Functions to display process detail
-     */
-    _displayProcessDetail: function(process_name){
-    	this.logger.log('_displayProcessDetail',process_name);
-    	this._clearDisplay(); 
-    	var container = this.down('#display_box');
-    	
-    	container.add({
-    		xtype: 'rallytextfield',
-    		fieldLabel: 'Process Name (must be unique)'
-    	});
-    	container.add({
-    		xtype: 'rallytextfield',
-    		fieldLabel: 'Short Name (used for the button text in the process grid)'
-    	});
-        var filters = Ext.create('Rally.data.wsapi.Filter',{
-            property:'Restorable',
-            value: 'true'
-        });
-        filters = filters.or(Ext.create('Rally.data.wsapi.Filter',{
-            property:'Ordinal',
-            value: 0
-        }));
-        container.add({
-            xtype:'rallycombobox',
-            displayField: 'DisplayName',
-            autoExpand: true,
-            storeConfig: {
-                autoLoad: true,
-                model:'TypeDefinition',
-               filters: filters
-            },
-            fieldLabel: 'Rally Type:',
-            valueField:'TypePath'
-        });
-    	container.add({
-    		xtype: 'rallybutton',
-    		text: '+Add Rule',
-    		scope: this,
-    		handler: this._addRule
-    	});
-    },
-    _populateFieldSelector: function(cb, new_value){
-    	
-    },
-    _addRule: function(){
-   	   	dlg = Ext.create('Rally.technicalservices.dialog.ProcessRule', {
 
-    	 	});
-  	   	dlg.show();    
-  	},
     /*
      * Functions to display the list of processes that can be edited or deleted 
      */
     _displayProcessList: function(){
     	this.logger.log('_displayProcessList');
-    	this._clearDisplay(); 
+    	this.down('#button_box').removeAll();
+    	this.down('#display_box').removeAll();
     	
     	this.down('#button_box').add({
     		xtype: 'rallybutton',
