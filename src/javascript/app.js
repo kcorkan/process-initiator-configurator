@@ -12,7 +12,7 @@ Ext.define('CustomApp', {
     },
     _addNewProcess: function(){
     	this.logger.log('_addNewProcess');
-   	   	dlg = Ext.create('Rally.technicalservices.dialog.ProcessRule', {});
+   	   	dlg = Ext.create('Rally.technicalservices.dialog.ProcessRule', {y: 0});
 	   	dlg.show();    
     },
     _editProcess: function(grid, row){
@@ -46,7 +46,7 @@ Ext.define('CustomApp', {
     	
     	this.down('#button_box').add({
     		xtype: 'rallybutton',
-    		text: '+Add New',
+    		text: '+Add New Process',
     		scope: this,
     		handler: this._addNewProcess
     	});

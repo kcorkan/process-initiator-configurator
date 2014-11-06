@@ -4,11 +4,10 @@ Ext.define('Rally.technicalservices.dialog.ProcessRule',{
     autoShow: true,
     draggable: true,
     width: 600,
-    fieldLabelWidth: 300,
+    fieldLabelWidth: 200,
     items: [
             {xtype:'container',itemId:'header_box'},
-            {xtype:'container',itemId:'edit_detail_box',layout:{type:'hbox'}},
-            {xtype:'container',itemId:'field_detail_box',layout:{type:'hbox'}},
+            {xtype:'container',itemId:'rule_type_detail_box'},
             {xtype:'container',itemId:'button_box',layout:{type:'hbox'}}
             ],
             
@@ -56,29 +55,9 @@ Ext.define('Rally.technicalservices.dialog.ProcessRule',{
     		labelWidth: fieldLabelWidth,
     		listeners: {
     			scope: this,
-    			change: function(cb, newValue){
-    				this.rallyType = newValue;
-    			}
+    			change: this._changeRallyType
     		}
         });
-    	container.add({
-  	    	xtype: 'rallycombobox',
-  	    	fieldLabel: 'Rule Type:',
-			store: this._getRuleStore(),
-		    displayField: 'name',
-		    valueField: 'operation',
-    		labelWidth: fieldLabelWidth,
-    		allowNoEntry: true,
-  	    	listeners: {
-  	    		scope: this,
-  	    		change: function(cb, newValue){
-  	    			this.down('#edit_detail_box').removeAll();
- 	    			this.down('#field_detail_box').removeAll();
-  	    			this[newValue]();
-  	    		}
-  	    	}
-  	    });
-
     	this.down('#button_box').add({
             xtype     : 'rallybutton',
             text      : 'Save',
@@ -92,39 +71,175 @@ Ext.define('Rally.technicalservices.dialog.ProcessRule',{
             handler      : this._cancel
   	    });
     },
+    _changeRallyType: function(cb, newValue){
+    	this.logger.log('_changeRallyType',newValue);
+    	
+    	this._destroyComponent('#rule-type-combobox');
+    	this.down('#rule_type_detail_box').removeAll();
+
+    	this._fetchModelForRallyType(newValue).then({
+    		scope: this,
+    		success: function(model){
+    			
+    			this.rallyTypeModel = model;
+    	    	this.rallyType = newValue; 
+     	    	
+    	    	var container = this.down('#header_box');
+    	    	container.add({
+    	  	    	xtype: 'rallycombobox',
+    	  	    	itemId: 'rule-type-combobox',
+    	  	    	fieldLabel: 'Rule Type:',
+    				store: this._getRuleStore(),
+    			    displayField: 'name',
+    			    valueField: 'operation',
+    	    		labelWidth: this.fieldLabelWidth,
+    	    		allowNoEntry: true,
+    	  	    	listeners: {
+    	  	    		scope: this,
+    	  	    		change: function(cb, newValue){
+    	  	    			this.down('#rule_type_detail_box').removeAll();
+    	  	    			this[newValue]();
+    	  	    		}
+    	  	    	}
+    	  	    });
+    		},
+    		failure: function(error){
+    			alert(error);
+    		}
+    	});
+    },
     _addNewRule: function(){
     	this.logger.log('_addNewRule');
+    	var fields = this.rallyTypeModel.getFields();
+    	console.log(this.rallyTypeModel);
+    	this._createFieldPickers(this.rallyTypeModel.getFields(), true);
+    },
+    _fetchModelForRallyType: function(rally_type){
+    	var deferred = Ext.create('Deft.Deferred');
+    	Rally.data.WsapiModelFactory.getModel({
+    	    type: rally_type,
+    	    success: function(model) {
+    	    	deferred.resolve(model);
+    	    },
+    	    failure: function(){
+    	    	deferred.reject('Error retrieving fields from model.');
+    	    }
+    	});
+    	return deferred.promise;
+    },
+    _getFieldPickerColumns: function(){
+     	var columns = [{
+            text: 'Required',
+            dataIndex: 'Required',
+            xtype : 'checkcolumn',
+            width: 50
+        },{ 
+            text: 'Name',
+            dataIndex: 'DisplayName',
+            flex: 1
+		}]; 
+      	return columns; 
+     },
+    _getTriggerFieldStore: function(fields){
+    	var forbidden_schemas = ['Artifact','TestFolder','Workspace','Subscription','SchedulableArtifact'
+    	                         ,'TestCase','TestCaseResult','HierarchicalRequirement','PortfolioItem-Feature'];
+    	var valid_trigger_attribute_types = ['STRING','BOOLEAN','OBJECT','STATE'];
     	
-    	this.down('#field_detail_box').add({
-            xtype: 'rallyfieldpicker',
-            fieldLabel: 'Select Required Fields',
-            itemId: 'required-field-picker',
-            modelTypes: [this.rallyType],
-            alwaysExpanded: false,
-            labelAlign: 'top',
-            padding: 10
-        });
-    	
-    	this.down('#field_detail_box').add({
-            xtype: 'rallyfieldpicker',
-            fieldLabel: 'Select Optional Fields',
-            itemId: 'optional-field-picker',
-            modelTypes: [this.rallyType],
-            alwaysExpanded: false,
-            labelAlign: 'top',
-            padding: 10
+    	var data = []; 
+    	Ext.each(fields, function(field){
+    		console.log(field);
+    		var field_def = field.attributeDefinition;
+    		if (field_def) {
+    			console.log(field.name,field_def.AttributeType,!field_def.ReadOnly,!field_def.Hidden, field_def.Constrained,Ext.Array.contains(valid_trigger_attribute_types, attribute_type));
+         		var attribute_type = field_def.AttributeType; 
+         		if (Ext.Array.contains(valid_trigger_attribute_types, attribute_type) && 
+         				!field_def.ReadOnly && 
+         				!field_def.Hidden &&
+         				field_def.Constrained){
+         			console.log('madeit');
+					data.push({
+						'DisplayName': field.displayName, 
+						'Name': field.name
+					});
+        		}
+    		}
+    	},this);
 
-        });
+    	var store = Ext.create('Rally.data.custom.Store', {
+            data: data,
+            autoLoad: true 
+    	});
+    	return store;
+    	
+    },
+    _getFieldPickerStore: function(fields, isAddNew){
+    	var forbidden_schemas = ['Artifact','TestFolder','Workspace','Subscription','SchedulableArtifact'
+    	                         ,'TestCase','TestCaseResult','HierarchicalRequirement','PortfolioItem-Feature'];
+    	var forbidden_attribute_types = ['BINARY_DATA','COLLECTION','WEB_LINK'];
+    	
+    	var data = []; 
+    	Ext.each(fields, function(field){
+    		var field_def = field.attributeDefinition;
+    		console.log(field,field_def);
+    		if (field_def) {
+         		var attribute_type = field_def.AttributeType; 
+         		if ( field_def.ReadOnly || field_def.Hidden || field_def.VisibleOnlyToAdmins ||
+         			(attribute_type == 'OBJECT' && Ext.Array.contains(forbidden_schemas, field_def.SchemaType)) ||
+         			Ext.Array.contains(forbidden_attribute_types, attribute_type)){
+         			this.logger.log('Exclude Field ', field.name, attribute_type);
+         		} else {
+					data.push({
+						'Name': field.name, 
+						'DisplayName': field.displayName, 
+						'Required': field_def.Required && isAddNew
+					});
+        		}
+    		}
+    	},this);
+
+    	var store = Ext.create('Rally.data.custom.Store', {
+            data: data,
+            autoLoad: true 
+    	});
+    	return store;
+    },
+    _createFieldPickers: function(fields, isAddNew){
+    	this.logger.log('_createFieldPickers', this.rallyType);
+    	
+    	var store = this._getFieldPickerStore(fields, isAddNew);
+    	var columns = this._getFieldPickerColumns();
+
+    	this._destroyComponent('#field-picker-grid');
+    	
+    	this.down('#rule_type_detail_box').add({
+	         xtype: 'rallygrid',
+	         itemId: 'field-picker-grid',
+	         columnCfgs: columns,
+	         store: store,
+	         height: 255,
+	         autoScroll: true
+    	});
+    },
+    _destroyComponent: function(name){
+    	
+    	if (this.down(name)){
+    		this.down(name).destroy();
+    	}
     },
     _editRule: function(){
     	this.logger.log('_editRule');
-    	this.down('#header_box').add({
-            xtype: 'rallyfieldcombobox',
-            model: this.rallyType,
+    	
+    	this._destroyComponent('#trigger-field-combobox');
+    	
+    	this.down('#rule_type_detail_box').add({
+            xtype: 'rallycombobox',
+            store: this._getTriggerFieldStore(this.rallyTypeModel.getFields()),
             fieldLabel: 'Trigger Field:',
             itemId: 'trigger-field-combobox',
             scope: this,
             allowNoEntry: true,
+            displayField: 'DisplayName',
+            valueField: 'Name',
             labelWidth: this.fieldLabelWidth,
             listeners:{
             	scope: this,
@@ -135,18 +250,26 @@ Ext.define('Rally.technicalservices.dialog.ProcessRule',{
     },
     _setTriggerFieldValues: function(cb, newValue){
     	this.logger.log('_setTriggerFieldValues', newValue);
-    	this.logger.log('_editRule');
-    	this.down('#header_box').add({
+    	
+    	this._destroyComponent('#trigger-value-combobox');
+    	
+    	this.down('#rule_type_detail_box').add({
 	        xtype: 'rallyfieldvaluecombobox',
 	        itemId: 'trigger-value-combobox',
 	        model: this.rallyType,
 	        field: newValue,
             labelWidth: this.fieldLabelWidth,
-            fieldLabel: 'Trigger Value:'
+            fieldLabel: 'Trigger Value:',
+            listeners: {
+            	scope:this,
+            	change: function() {this._createFieldPickers(this.rallyTypeModel.getFields(),false);}
+            }
     	});
-
     },
     _save: function(){
+    	this.logger.log('_save');
+    	//Save the process 
+    	
     	this._cancel();
     },
      _cancel: function(){
