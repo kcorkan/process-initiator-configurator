@@ -3,11 +3,11 @@
 <head>
     <title>Process Initiator Configurator</title>
     <!--  (c) 2014 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Fri Nov 07 2014 12:43:40 GMT-0800 (PST) -->
+    <!--  Build Date: Fri Nov 07 2014 14:09:41 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Fri Nov 07 2014 12:43:40 GMT-0800 (PST)";
-        var CHECKSUM = 34506717084;
+        var APP_BUILD_DATE = "Fri Nov 07 2014 14:09:41 GMT-0800 (PST)";
+        var CHECKSUM = 35514716078;
     </script>
     
     <script type="text/javascript" src="/apps/2.0rc3/sdk.js"></script>
@@ -460,6 +460,9 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     			processType: null,
     			rallyType: 'Defect'    			
     		});
+    	} else {
+    		var pd = this.processDefinition;
+    		this.processDefinition = Ext.create('Rally.technicalservices.ProcessDefinition',{},pd);
     	}
     	
     	var container = this.down('#header_box');
@@ -831,8 +834,16 @@ Ext.define('Rally.technicalservices.ProcessDefinition',{
      * 
      */
  
-    constructor: function(config){
+    constructor: function(config, jsonObject){
         Ext.apply(this,config);
+        if (jsonObject){
+        	this. processName = jsonObject.processName;
+            this.shortName = jsonObject.shortName;
+            this.rallyType = jsonObject.rallyType;
+            this.rallyField = jsonObject.rallyField;
+            this.processType = jsonObject.processType;
+            this.processDetail = jsonObject.processDetail;
+        }
     },
     isNew: function(){
     	return (this.processType == 'new');

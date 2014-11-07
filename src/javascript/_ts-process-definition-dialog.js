@@ -30,6 +30,9 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     			processType: null,
     			rallyType: 'Defect'    			
     		});
+    	} else {
+    		var pd = this.processDefinition;
+    		this.processDefinition = Ext.create('Rally.technicalservices.ProcessDefinition',{},pd);
     	}
     	
     	var container = this.down('#header_box');

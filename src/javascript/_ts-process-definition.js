@@ -43,8 +43,16 @@ Ext.define('Rally.technicalservices.ProcessDefinition',{
      * 
      */
  
-    constructor: function(config){
+    constructor: function(config, jsonObject){
         Ext.apply(this,config);
+        if (jsonObject){
+        	this. processName = jsonObject.processName;
+            this.shortName = jsonObject.shortName;
+            this.rallyType = jsonObject.rallyType;
+            this.rallyField = jsonObject.rallyField;
+            this.processType = jsonObject.processType;
+            this.processDetail = jsonObject.processDetail;
+        }
     },
     isNew: function(){
     	return (this.processType == 'new');
