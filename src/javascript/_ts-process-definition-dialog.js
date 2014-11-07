@@ -170,7 +170,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
             	change: this._setTriggerFieldValues
             } 
         });
-    	this.down('#trigger-field-combobox')
+    	this.down('#trigger-field-combobox').setValue(this.processDefinition.rallyField);
     },
 
     _setTriggerFieldValues: function(cb, newValue){
@@ -188,9 +188,14 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
             fieldLabel: 'Trigger Value:',
             listeners: {
             	scope:this,
-            	change: function(cb, newValue) {this._createFieldPickers(this.rallyTypeModel.getFields(),false,this.processDefinition.getRequiredFields(newValue));}
+            	change: function(cb, newValue) {
+            		this._createFieldPickers(this.rallyTypeModel.getFields(),false,
+            				this.processDefinition.getCurrentRequiredFields(newValue));}
             }
     	});
+    	if (this.getCurrentRequiredFields().length > 0){
+    		
+    	}
     },
     _requiredFieldChanged: function(obj,row,val){
     	this.logger.log('_requiredFieldChanged',row,val);
@@ -330,7 +335,8 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
          		var attribute_type = field_def.AttributeType; 
          		if ( field_def.ReadOnly || field_def.Hidden || field_def.VisibleOnlyToAdmins ||
          			(attribute_type == 'OBJECT' && Ext.Array.contains(forbidden_schemas, field_def.SchemaType)) ||
-         			Ext.Array.contains(forbidden_attribute_types, attribute_type)){
+         			Ext.Array.contains(forbidden_attribute_types, attribute_type) ||
+         			(field.name == this.processDefinition.rallyField)){
          			this.logger.log('Exclude Field ', field.name, attribute_type);
          		} else {
 					var required = (Ext.Array.contains(current_required_fields, field.name)) || 
@@ -361,8 +367,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	var store = this._getFieldPickerStore(fields, isAddNew, current_required_fields);
     	var columns = this._getFieldPickerColumns();
     	var current_required_fields = [];
-    	
-    	
+     	
     	this._destroyComponent('#field-picker-grid');
     	
     	this.down('#rule_type_detail_box').add({

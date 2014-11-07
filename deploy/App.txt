@@ -3,11 +3,11 @@
 <head>
     <title>Process Initiator Configurator</title>
     <!--  (c) 2014 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Fri Nov 07 2014 15:21:37 GMT-0800 (PST) -->
+    <!--  Build Date: Fri Nov 07 2014 15:37:55 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Fri Nov 07 2014 15:21:37 GMT-0800 (PST)";
-        var CHECKSUM = 37251661206;
+        var APP_BUILD_DATE = "Fri Nov 07 2014 15:37:55 GMT-0800 (PST)";
+        var CHECKSUM = 37647538788;
     </script>
     
     <script type="text/javascript" src="/apps/2.0rc3/sdk.js"></script>
@@ -600,7 +600,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
             	change: this._setTriggerFieldValues
             } 
         });
-    	this.down('#trigger-field-combobox')
+    	this.down('#trigger-field-combobox').setValue(this.processDefinition.rallyField);
     },
 
     _setTriggerFieldValues: function(cb, newValue){
@@ -618,9 +618,14 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
             fieldLabel: 'Trigger Value:',
             listeners: {
             	scope:this,
-            	change: function(cb, newValue) {this._createFieldPickers(this.rallyTypeModel.getFields(),false,this.processDefinition.getRequiredFields(newValue));}
+            	change: function(cb, newValue) {
+            		this._createFieldPickers(this.rallyTypeModel.getFields(),false,
+            				this.processDefinition.getCurrentRequiredFields(newValue));}
             }
     	});
+    	if (this.getCurrentRequiredFields().length > 0){
+    		
+    	}
     },
     _requiredFieldChanged: function(obj,row,val){
     	this.logger.log('_requiredFieldChanged',row,val);
@@ -760,7 +765,8 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
          		var attribute_type = field_def.AttributeType; 
          		if ( field_def.ReadOnly || field_def.Hidden || field_def.VisibleOnlyToAdmins ||
          			(attribute_type == 'OBJECT' && Ext.Array.contains(forbidden_schemas, field_def.SchemaType)) ||
-         			Ext.Array.contains(forbidden_attribute_types, attribute_type)){
+         			Ext.Array.contains(forbidden_attribute_types, attribute_type) ||
+         			(field.name == this.processDefinition.rallyField)){
          			this.logger.log('Exclude Field ', field.name, attribute_type);
          		} else {
 					var required = (Ext.Array.contains(current_required_fields, field.name)) || 
@@ -791,8 +797,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	var store = this._getFieldPickerStore(fields, isAddNew, current_required_fields);
     	var columns = this._getFieldPickerColumns();
     	var current_required_fields = [];
-    	
-    	
+     	
     	this._destroyComponent('#field-picker-grid');
     	
     	this.down('#rule_type_detail_box').add({
