@@ -43,22 +43,22 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     		fieldLabel: 'Process Name (must be unique)',
     		itemId: 'process-name-textfield',
     		labelWidth: fieldLabelWidth,
-    		text: this.processDefinition.processName
+    		value: this.processDefinition.processName
     	});
     	container.add({
     		xtype: 'rallytextfield',
     		fieldLabel: 'Short Name (button text)',
     		itemId: 'short-name-textfield',
     		labelWidth: fieldLabelWidth,
-    		text: this.processDefinition.shortName
+    		value: this.processDefinition.shortName
     	});
         var filters = Ext.create('Rally.data.wsapi.Filter',{
             property:'Restorable',
-            value: 'true'
+            value: true
         });
-        filters = filters.or(Ext.create('Rally.data.wsapi.Filter',{
-            property:'Ordinal',
-            value: 0
+        filters = filters.and(Ext.create('Rally.data.wsapi.Filter',{
+            property:'Creatable',
+            value: true
         }));
         container.add({
             xtype:'rallycombobox',
@@ -121,11 +121,18 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	  	    		scope: this,
     	  	    		change: function(cb, newValue){
     	  	    			this.down('#rule_type_detail_box').removeAll();
-    	  	    			this[newValue]();
+    	  	    			if (newValue) {
+        	  	    			this[newValue]();
+    	  	    			}
     	  	    		}
     	  	    	},
     	  	    	value: this.processDefinition.processType
     	  	    });
+    	    	if (this.processDefinition.isNew()){
+        	    	this.down('#rule-type-combobox').setValue('_addNewRule');
+    	    	} else {
+        	    	this.down('#rule-type-combobox').setValue('_editRule');
+    	    	}
     		},
     		failure: function(error){
     			alert(error);
@@ -138,7 +145,9 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	this.processDefinition.rallyField = '';
     	
     	var fields = this.rallyTypeModel.getFields();
-    	this._createFieldPickers(this.rallyTypeModel.getFields(), true);
+    	
+    	this._createFieldPickers(this.rallyTypeModel.getFields(), true,
+    			this.processDefinition.getCurrentRequiredFields());
     },
     _editRule: function(){
     	this.logger.log('_editRule');
@@ -179,33 +188,39 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
             fieldLabel: 'Trigger Value:',
             listeners: {
             	scope:this,
-            	change: function() {this._createFieldPickers(this.rallyTypeModel.getFields(),false);}
+            	change: function(cb, newValue) {this._createFieldPickers(this.rallyTypeModel.getFields(),false,this.processDefinition.getRequiredFields(newValue));}
             }
     	});
     },
-    _requiredFieldChanged: function(obj, row,val){
+    _requiredFieldChanged: function(obj,row,val){
     	this.logger.log('_requiredFieldChanged',row,val);
+    	
     	var pd_key = 'required';
-    	if (this.processDefinition.processType == 'edit') {
+    	if (!this.processDefinition.isNew()) {
     		pd_key = this.down('#trigger-value-combobox').getValue();
     	} 
+    	
     	var grid = this.down('#field-picker-grid');
     	var required_field = grid.getStore().getAt(row).get('Name');
     	
+    	this._setRequiredField(pd_key,required_field,val);
+    	
+    },
+    _setRequiredField: function(key,required_field,is_required){
     	if (this.processDefinition.processDetail == null){
     		this.processDefinition.processDetail = {};
     	}
-    	if (this.processDefinition.processDetail[pd_key] == undefined){
-    		this.processDefinition.processDetail[pd_key] = [];
+    	if (this.processDefinition.processDetail[key] == undefined){
+    		this.processDefinition.processDetail[key] = [];
     	}
-    	if (val){
-        	if (!Ext.Array.contains(this.processDefinition.processDetail[pd_key], required_field)){
-            	this.processDefinition.processDetail[pd_key].push(required_field); 
+    	if (is_required){
+        	if (!Ext.Array.contains(this.processDefinition.processDetail[key], required_field)){
+            	this.processDefinition.processDetail[key].push(required_field); 
         	}
     	} else {
-    		for (var i=0; i<this.processDefinition.processDetail[pd_key].length; i++){
-    			if (this.processDefinition.processDetail[pd_key][i] == required_field){
-    				this.processDefinition.processDetail[pd_key] = this.processDefinition.processDetail[pd_key].splice(i,1);
+    		for (var i=0; i<this.processDefinition.processDetail[key].length; i++){
+    			if (this.processDefinition.processDetail[key][i] == required_field){
+    				this.processDefinition.processDetail[key].splice(i,1);
     			}
     		}
     	}
@@ -216,7 +231,6 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	this.processDefinition.shortName = this.down('#short-name-textfield').value;
 
     	var pref_name = Rally.technicalservices.ProcessDefinition.getProcessDefinitionPrefix(this.processDefinition.rallyType) + this.processDefinition.processName;
-     	console.log('save',pref_name);
     	Rally.technicalservices.util.PreferenceSaving.saveAsJSON(pref_name, this.processDefinition, this.workspace).then({
     		scope: this,
     		success: function(){
@@ -228,11 +242,9 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	});
     	this._cancel();
     },
-    
      _cancel: function(){
     	this.destroy();
     },
-    
     _getRuleStore: function(){
 		return Ext.create('Rally.data.custom.Store', {
 	        data: [{name:'Add New', operation:'_addNewRule'},
@@ -280,7 +292,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	
     	var data = []; 
     	Ext.each(fields, function(field){
-    		console.log(field);
+
     		var field_def = field.attributeDefinition;
     		if (field_def) {
     			console.log(field.name,field_def.AttributeType,!field_def.ReadOnly,!field_def.Hidden, field_def.Constrained,Ext.Array.contains(valid_trigger_attribute_types, attribute_type));
@@ -289,7 +301,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
          				!field_def.ReadOnly && 
          				!field_def.Hidden &&
          				field_def.Constrained){
-         			console.log('madeit');
+
 					data.push({
 						'DisplayName': field.displayName, 
 						'Name': field.name
@@ -305,7 +317,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	return store;
     	
     },
-    _getFieldPickerStore: function(fields, isAddNew){
+    _getFieldPickerStore: function(fields, isAddNew, current_required_fields){
     	var forbidden_schemas = ['Artifact','TestFolder','Workspace','Subscription','SchedulableArtifact'
     	                         ,'TestCase','TestCaseResult','HierarchicalRequirement','PortfolioItem-Feature'];
     	var forbidden_attribute_types = ['BINARY_DATA','COLLECTION','WEB_LINK'];
@@ -321,10 +333,17 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
          			Ext.Array.contains(forbidden_attribute_types, attribute_type)){
          			this.logger.log('Exclude Field ', field.name, attribute_type);
          		} else {
-					data.push({
+					var required = (Ext.Array.contains(current_required_fields, field.name)) || 
+							(field_def.Required && isAddNew)
+							
+					if (field_def.Required && isAddNew) {
+						this._setRequiredField('required',field.name,true);
+					}
+					
+         			data.push({
 						'Name': field.name, 
 						'DisplayName': field.displayName, 
-						'Required': field_def.Required && isAddNew
+						'Required': required
 					});
         		}
     		}
@@ -336,12 +355,14 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	});
     	return store;
     },
-    _createFieldPickers: function(fields, isAddNew){
+    _createFieldPickers: function(fields, isAddNew, current_required_fields){
     	this.logger.log('_createFieldPickers', this.rallyType);
     	
-    	var store = this._getFieldPickerStore(fields, isAddNew);
+    	var store = this._getFieldPickerStore(fields, isAddNew, current_required_fields);
     	var columns = this._getFieldPickerColumns();
-
+    	var current_required_fields = [];
+    	
+    	
     	this._destroyComponent('#field-picker-grid');
     	
     	this.down('#rule_type_detail_box').add({

@@ -3,10 +3,10 @@
 <head>
     <title>Process Initiator Configurator</title>
     <!--  (c) 2013 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Fri Nov 07 2014 14:09:41 GMT-0800 (PST) -->
+    <!--  Build Date: Fri Nov 07 2014 15:21:38 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Fri Nov 07 2014 14:09:41 GMT-0800 (PST)";
+        var APP_BUILD_DATE = "Fri Nov 07 2014 15:21:38 GMT-0800 (PST)";
         var CHECKSUM = [%= checksum %];
     </script>
     

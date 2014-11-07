@@ -35,7 +35,6 @@ Ext.define('CustomApp', {
    	   		y: 0,
    	   		workspace: this.getContext().getWorkspace(),
    	   		processDefinition: pd,
-   	   		//PROCESS_DEFINITION_PREFIX: this.PROCESS_DEFINITION_PREFIX,
    	   		modal: true,
    	   		listeners: {
    	   			scope: this,

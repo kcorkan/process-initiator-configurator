@@ -57,6 +57,15 @@ Ext.define('Rally.technicalservices.ProcessDefinition',{
     isNew: function(){
     	return (this.processType == 'new');
     },
+    getCurrentRequiredFields: function(key){
+    	if (key == undefined){
+    		key = 'required';
+    	}
+    	if (this.processDetail[key]==undefined){
+    		this.processDetail[key]=[];
+    	}
+    	return this.processDetail[key];
+    },
     /*
      * getProcessFields: returns the fields that are defined in all the rules for the current process
      * 
