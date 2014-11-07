@@ -3,11 +3,11 @@
 <head>
     <title>Process Initiator Configurator</title>
     <!--  (c) 2014 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Thu Nov 06 2014 15:39:14 GMT-0800 (PST) -->
+    <!--  Build Date: Fri Nov 07 2014 12:43:40 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Thu Nov 06 2014 15:39:14 GMT-0800 (PST)";
-        var CHECKSUM = 32978557606;
+        var APP_BUILD_DATE = "Fri Nov 07 2014 12:43:40 GMT-0800 (PST)";
+        var CHECKSUM = 34506717084;
     </script>
     
     <script type="text/javascript" src="/apps/2.0rc3/sdk.js"></script>
@@ -595,6 +595,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	this.logger.log('_setTriggerFieldValues', newValue);
     	
     	this._destroyComponent('#trigger-value-combobox');
+    	this.processDefinition.rallyField = newValue;  
     	
     	this.down('#rule_type_detail_box').add({
 	        xtype: 'rallyfieldvaluecombobox',
@@ -630,7 +631,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
         	}
     	} else {
     		for (var i=0; i<this.processDefinition.processDetail[pd_key].length; i++){
-    			if (field == required_field){
+    			if (this.processDefinition.processDetail[pd_key][i] == required_field){
     				this.processDefinition.processDetail[pd_key] = this.processDefinition.processDetail[pd_key].splice(i,1);
     			}
     		}
@@ -640,9 +641,9 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	this.logger.log('_save');
     	this.processDefinition.processName = this.down('#process-name-textfield').value;
     	this.processDefinition.shortName = this.down('#short-name-textfield').value;
-    	console.log(this.processDefinition);
-    	
-    	var pref_name = this.PROCESS_DEFINITION_PREFIX + this.processDefinition.processName;
+
+    	var pref_name = Rally.technicalservices.ProcessDefinition.getProcessDefinitionPrefix(this.processDefinition.rallyType) + this.processDefinition.processName;
+     	console.log('save',pref_name);
     	Rally.technicalservices.util.PreferenceSaving.saveAsJSON(pref_name, this.processDefinition, this.workspace).then({
     		scope: this,
     		success: function(){
@@ -912,7 +913,7 @@ Ext.define('Rally.technicalservices.ProcessDefinition',{
     	}
     	var msg = Ext.String.format("A value for field {0} is required for a new {1}.", detail_field, this.rallyType);
 		return {valid: false, message: msg};  
-    }
+    },
     
 /*
  * This is just an example of validations in the model object.  
@@ -928,7 +929,17 @@ Ext.define('Rally.technicalservices.ProcessDefinition',{
  *               ]
  * 
  */ 
-    
+    statics: {
+        PROCESS_DEFINITION_PREFIX: 'rally.technicalservices.process-initiator.',
+        getProcessDefinitionPrefix: function(type){
+        	if (type && type.length > 0 ) {
+            	return Rally.technicalservices.ProcessDefinition.PROCESS_DEFINITION_PREFIX  + type.toLowerCase() + '.';
+       		
+        	} else {
+            	return Rally.technicalservices.ProcessDefinition.PROCESS_DEFINITION_PREFIX;
+        	}
+        }
+    }
 });
 Ext.define('CustomApp', {
     extend: 'Rally.app.App',
@@ -939,7 +950,7 @@ Ext.define('CustomApp', {
         {xtype:'container',itemId:'display_box'},
         {xtype:'tsinfolink'}
     ],
-    PROCESS_DEFINITION_PREFIX: 'ProcessInitiator.',
+ //   PROCESS_DEFINITION_PREFIX: 'rally.technicalservices.process-initiator.',
     launch: function() {
     	this._displayProcessList();
     },
@@ -948,7 +959,7 @@ Ext.define('CustomApp', {
    	   	dlg = Ext.create('Rally.technicalservices.dialog.ProcessDefinition', {
    	   		y: 0,
    	   		workspace: this.getContext().getWorkspace(),
-   	   		PROCESS_DEFINITION_PREFIX: this.PROCESS_DEFINITION_PREFIX,
+ //  	   		PROCESS_DEFINITION_PREFIX: this.PROCESS_DEFINITION_PREFIX,
    	   		modal: true,
    	   		listeners: {
    	   			scope: this,
@@ -967,7 +978,7 @@ Ext.define('CustomApp', {
    	   		y: 0,
    	   		workspace: this.getContext().getWorkspace(),
    	   		processDefinition: pd,
-   	   		PROCESS_DEFINITION_PREFIX: this.PROCESS_DEFINITION_PREFIX,
+   	   		//PROCESS_DEFINITION_PREFIX: this.PROCESS_DEFINITION_PREFIX,
    	   		modal: true,
    	   		listeners: {
    	   			scope: this,
@@ -1038,13 +1049,14 @@ Ext.define('CustomApp', {
     	var deferred = Ext.create('Deft.Deferred');
     	
     	this.logger.log('_fetchProcessStore');
-    	Rally.technicalservices.util.PreferenceSaving.fetchFromJSON(this.PROCESS_DEFINITION_PREFIX, 
+    	Rally.technicalservices.util.PreferenceSaving.fetchFromJSON(Rally.technicalservices.ProcessDefinition.getProcessDefinitionPrefix(), 
     			this.getContext().getWorkspace()).then({
     		scope: this,
     		success: function(obj){
     			 var keys = obj[0].getKeys();
     			 this.processDefinitionCache = obj[0];
                  var data = [];
+                 console.log('cache',this.processDefinitionCache);
                  Ext.each(keys, function(key){
                 	 var pd = obj[0].get(key);
                 	 data.push({
@@ -1056,7 +1068,7 @@ Ext.define('CustomApp', {
                 		 'Field': pd.rallyField,
                 	 });
                  }, this);
-
+                 
                  var store = Ext.create('Rally.data.custom.Store',{
                      data: data,
                      limit: 'infinity'

@@ -125,7 +125,7 @@ Ext.define('Rally.technicalservices.ProcessDefinition',{
     	}
     	var msg = Ext.String.format("A value for field {0} is required for a new {1}.", detail_field, this.rallyType);
 		return {valid: false, message: msg};  
-    }
+    },
     
 /*
  * This is just an example of validations in the model object.  
@@ -141,5 +141,15 @@ Ext.define('Rally.technicalservices.ProcessDefinition',{
  *               ]
  * 
  */ 
-    
+    statics: {
+        PROCESS_DEFINITION_PREFIX: 'rally.technicalservices.process-initiator.',
+        getProcessDefinitionPrefix: function(type){
+        	if (type && type.length > 0 ) {
+            	return Rally.technicalservices.ProcessDefinition.PROCESS_DEFINITION_PREFIX  + type.toLowerCase() + '.';
+       		
+        	} else {
+            	return Rally.technicalservices.ProcessDefinition.PROCESS_DEFINITION_PREFIX;
+        	}
+        }
+    }
 });

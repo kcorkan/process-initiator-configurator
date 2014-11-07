@@ -165,6 +165,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	this.logger.log('_setTriggerFieldValues', newValue);
     	
     	this._destroyComponent('#trigger-value-combobox');
+    	this.processDefinition.rallyField = newValue;  
     	
     	this.down('#rule_type_detail_box').add({
 	        xtype: 'rallyfieldvaluecombobox',
@@ -200,7 +201,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
         	}
     	} else {
     		for (var i=0; i<this.processDefinition.processDetail[pd_key].length; i++){
-    			if (field == required_field){
+    			if (this.processDefinition.processDetail[pd_key][i] == required_field){
     				this.processDefinition.processDetail[pd_key] = this.processDefinition.processDetail[pd_key].splice(i,1);
     			}
     		}
@@ -210,9 +211,9 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	this.logger.log('_save');
     	this.processDefinition.processName = this.down('#process-name-textfield').value;
     	this.processDefinition.shortName = this.down('#short-name-textfield').value;
-    	console.log(this.processDefinition);
-    	
-    	var pref_name = this.PROCESS_DEFINITION_PREFIX + this.processDefinition.processName;
+
+    	var pref_name = Rally.technicalservices.ProcessDefinition.getProcessDefinitionPrefix(this.processDefinition.rallyType) + this.processDefinition.processName;
+     	console.log('save',pref_name);
     	Rally.technicalservices.util.PreferenceSaving.saveAsJSON(pref_name, this.processDefinition, this.workspace).then({
     		scope: this,
     		success: function(){

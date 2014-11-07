@@ -7,7 +7,7 @@ Ext.define('CustomApp', {
         {xtype:'container',itemId:'display_box'},
         {xtype:'tsinfolink'}
     ],
-    PROCESS_DEFINITION_PREFIX: 'ProcessInitiator.',
+ //   PROCESS_DEFINITION_PREFIX: 'rally.technicalservices.process-initiator.',
     launch: function() {
     	this._displayProcessList();
     },
@@ -16,7 +16,7 @@ Ext.define('CustomApp', {
    	   	dlg = Ext.create('Rally.technicalservices.dialog.ProcessDefinition', {
    	   		y: 0,
    	   		workspace: this.getContext().getWorkspace(),
-   	   		PROCESS_DEFINITION_PREFIX: this.PROCESS_DEFINITION_PREFIX,
+ //  	   		PROCESS_DEFINITION_PREFIX: this.PROCESS_DEFINITION_PREFIX,
    	   		modal: true,
    	   		listeners: {
    	   			scope: this,
@@ -35,7 +35,7 @@ Ext.define('CustomApp', {
    	   		y: 0,
    	   		workspace: this.getContext().getWorkspace(),
    	   		processDefinition: pd,
-   	   		PROCESS_DEFINITION_PREFIX: this.PROCESS_DEFINITION_PREFIX,
+   	   		//PROCESS_DEFINITION_PREFIX: this.PROCESS_DEFINITION_PREFIX,
    	   		modal: true,
    	   		listeners: {
    	   			scope: this,
@@ -106,13 +106,14 @@ Ext.define('CustomApp', {
     	var deferred = Ext.create('Deft.Deferred');
     	
     	this.logger.log('_fetchProcessStore');
-    	Rally.technicalservices.util.PreferenceSaving.fetchFromJSON(this.PROCESS_DEFINITION_PREFIX, 
+    	Rally.technicalservices.util.PreferenceSaving.fetchFromJSON(Rally.technicalservices.ProcessDefinition.getProcessDefinitionPrefix(), 
     			this.getContext().getWorkspace()).then({
     		scope: this,
     		success: function(obj){
     			 var keys = obj[0].getKeys();
     			 this.processDefinitionCache = obj[0];
                  var data = [];
+                 console.log('cache',this.processDefinitionCache);
                  Ext.each(keys, function(key){
                 	 var pd = obj[0].get(key);
                 	 data.push({
@@ -124,7 +125,7 @@ Ext.define('CustomApp', {
                 		 'Field': pd.rallyField,
                 	 });
                  }, this);
-
+                 
                  var store = Ext.create('Rally.data.custom.Store',{
                      data: data,
                      limit: 'infinity'
