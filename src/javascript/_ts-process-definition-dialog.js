@@ -146,8 +146,10 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	
     	var fields = this.rallyTypeModel.getFields();
     	
+    	var current_required_fields = this.processDefinition.getCurrentRequiredFields();
+    	this.processDefinition.clearCurrentRequiredFields();
     	this._createFieldPickers(this.rallyTypeModel.getFields(), true,
-    			this.processDefinition.getCurrentRequiredFields());
+    			current_required_fields);
     },
     _editRule: function(){
     	this.logger.log('_editRule');
@@ -190,8 +192,10 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
             listeners: {
             	scope:this,
             	change: function(cb, newValue) {
-            		this._createFieldPickers(this.rallyTypeModel.getFields(),false,
-            				this.processDefinition.getCurrentRequiredFields(newValue));}
+            	  	var current_required_fields = this.processDefinition.getCurrentRequiredFields(newValue);
+            	  	this.processDefinition.clearCurrentRequiredFields(newValue);
+             		this._createFieldPickers(this.rallyTypeModel.getFields(),false,
+            				current_required_fields);}
             }
     	});
 
@@ -214,6 +218,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	if (this.processDefinition.processDetail == null){
     		this.processDefinition.processDetail = {};
     	}
+
     	if (this.processDefinition.processDetail[key] == undefined){
     		this.processDefinition.processDetail[key] = [];
     	}
@@ -329,7 +334,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	var data = []; 
     	Ext.each(fields, function(field){
     		var field_def = field.attributeDefinition;
-    		console.log(field,field_def);
+    		console.log('getfieldpickerstore',field,field_def);
     		if (field_def) {
          		var attribute_type = field_def.AttributeType; 
          		if ( field_def.ReadOnly || field_def.Hidden || field_def.VisibleOnlyToAdmins ||
@@ -361,7 +366,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	return store;
     },
     _createFieldPickers: function(fields, isAddNew, current_required_fields){
-    	this.logger.log('_createFieldPickers', this.rallyType);
+    	this.logger.log('_createFieldPickers', this.rallyType, fields, current_required_fields);
     	
     	var store = this._getFieldPickerStore(fields, isAddNew, current_required_fields);
     	var columns = this._getFieldPickerColumns();

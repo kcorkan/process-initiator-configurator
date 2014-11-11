@@ -3,11 +3,11 @@
 <head>
     <title>Process Initiator Configurator</title>
     <!--  (c) 2014 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Mon Nov 10 2014 16:40:50 GMT-0800 (PST) -->
+    <!--  Build Date: Mon Nov 10 2014 22:50:22 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Mon Nov 10 2014 16:40:50 GMT-0800 (PST)";
-        var CHECKSUM = 38950714158;
+        var APP_BUILD_DATE = "Mon Nov 10 2014 22:50:22 GMT-0800 (PST)";
+        var CHECKSUM = 39999431859;
     </script>
     
     <script type="text/javascript" src="/apps/2.0rc3/sdk.js"></script>
@@ -592,8 +592,10 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	
     	var fields = this.rallyTypeModel.getFields();
     	
+    	var current_required_fields = this.processDefinition.getCurrentRequiredFields();
+    	this.processDefinition.clearCurrentRequiredFields();
     	this._createFieldPickers(this.rallyTypeModel.getFields(), true,
-    			this.processDefinition.getCurrentRequiredFields());
+    			current_required_fields);
     },
     _editRule: function(){
     	this.logger.log('_editRule');
@@ -636,8 +638,10 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
             listeners: {
             	scope:this,
             	change: function(cb, newValue) {
-            		this._createFieldPickers(this.rallyTypeModel.getFields(),false,
-            				this.processDefinition.getCurrentRequiredFields(newValue));}
+            	  	var current_required_fields = this.processDefinition.getCurrentRequiredFields(newValue);
+            	  	this.processDefinition.clearCurrentRequiredFields(newValue);
+             		this._createFieldPickers(this.rallyTypeModel.getFields(),false,
+            				current_required_fields);}
             }
     	});
 
@@ -660,6 +664,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	if (this.processDefinition.processDetail == null){
     		this.processDefinition.processDetail = {};
     	}
+
     	if (this.processDefinition.processDetail[key] == undefined){
     		this.processDefinition.processDetail[key] = [];
     	}
@@ -775,7 +780,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	var data = []; 
     	Ext.each(fields, function(field){
     		var field_def = field.attributeDefinition;
-    		console.log(field,field_def);
+    		console.log('getfieldpickerstore',field,field_def);
     		if (field_def) {
          		var attribute_type = field_def.AttributeType; 
          		if ( field_def.ReadOnly || field_def.Hidden || field_def.VisibleOnlyToAdmins ||
@@ -807,7 +812,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	return store;
     },
     _createFieldPickers: function(fields, isAddNew, current_required_fields){
-    	this.logger.log('_createFieldPickers', this.rallyType);
+    	this.logger.log('_createFieldPickers', this.rallyType, fields, current_required_fields);
     	
     	var store = this._getFieldPickerStore(fields, isAddNew, current_required_fields);
     	var columns = this._getFieldPickerColumns();
@@ -888,6 +893,12 @@ Ext.define('Rally.technicalservices.ProcessDefinition',{
     },
     isNew: function(){
     	return (this.processType == 'new');
+    },
+    clearCurrentRequiredFields: function(key){
+    	if (key == undefined){
+    		key = 'required';
+    	}
+    	this.processDetail[key] = [];
     },
     getCurrentRequiredFields: function(key){
     	if (key == undefined){
