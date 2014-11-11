@@ -61,6 +61,9 @@ Ext.define('Rally.technicalservices.ProcessDefinition',{
     	if (key == undefined){
     		key = 'required';
     	}
+    	if (this.processDetail == null){
+    		this.processDetail = {};
+    	}
     	if (this.processDetail[key]==undefined){
     		this.processDetail[key]=[];
     	}

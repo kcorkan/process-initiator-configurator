@@ -179,6 +179,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	this._destroyComponent('#trigger-value-combobox');
     	this.processDefinition.rallyField = newValue;  
     	
+    	
     	this.down('#rule_type_detail_box').add({
 	        xtype: 'rallyfieldvaluecombobox',
 	        itemId: 'trigger-value-combobox',
@@ -193,9 +194,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
             				this.processDefinition.getCurrentRequiredFields(newValue));}
             }
     	});
-    	if (this.getCurrentRequiredFields().length > 0){
-    		
-    	}
+
     },
     _requiredFieldChanged: function(obj,row,val){
     	this.logger.log('_requiredFieldChanged',row,val);
@@ -305,7 +304,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
          		if (Ext.Array.contains(valid_trigger_attribute_types, attribute_type) && 
          				!field_def.ReadOnly && 
          				!field_def.Hidden &&
-         				field_def.Constrained){
+         				(field_def.Constrained || attribute_type == 'BOOLEAN')){
 
 					data.push({
 						'DisplayName': field.displayName, 

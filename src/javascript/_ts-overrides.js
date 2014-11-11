@@ -1,3 +1,19 @@
+Ext.override(Rally.ui.combobox.FieldValueComboBox,{
+    _populateStore: function() {
+        if (!this.field) {
+            Ext.Error.raise('field config must be specified when creating a Rally.ui.combobox.FieldValueComboBox');
+        }
+        if (this.field.attributeDefinition.AttributeType.toLowerCase() == 'boolean'){
+        	var store = this.store; 
+        	store.loadRawData([{name:"True", value:"true"},{name:"False", value:"false"}]);
+            store.fireEvent('load', store, store.getRange(), true);
+
+        } else {
+            this._loadStoreValues();        	
+        }
+
+    }
+});
 Ext.override(Ext.grid.column.Action, {
 
 	buttonText: 'myButton',

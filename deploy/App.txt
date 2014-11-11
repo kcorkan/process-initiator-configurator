@@ -3,11 +3,11 @@
 <head>
     <title>Process Initiator Configurator</title>
     <!--  (c) 2014 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Fri Nov 07 2014 15:37:55 GMT-0800 (PST) -->
+    <!--  Build Date: Mon Nov 10 2014 16:40:50 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Fri Nov 07 2014 15:37:55 GMT-0800 (PST)";
-        var CHECKSUM = 37647538788;
+        var APP_BUILD_DATE = "Mon Nov 10 2014 16:40:50 GMT-0800 (PST)";
+        var CHECKSUM = 38950714158;
     </script>
     
     <script type="text/javascript" src="/apps/2.0rc3/sdk.js"></script>
@@ -138,6 +138,22 @@ Ext.define('Rally.technicalservices.Logger',{
 
 });
 
+Ext.override(Rally.ui.combobox.FieldValueComboBox,{
+    _populateStore: function() {
+        if (!this.field) {
+            Ext.Error.raise('field config must be specified when creating a Rally.ui.combobox.FieldValueComboBox');
+        }
+        if (this.field.attributeDefinition.AttributeType.toLowerCase() == 'boolean'){
+        	var store = this.store; 
+        	store.loadRawData([{name:"True", value:"true"},{name:"False", value:"false"}]);
+            store.fireEvent('load', store, store.getRange(), true);
+
+        } else {
+            this._loadStoreValues();        	
+        }
+
+    }
+});
 Ext.override(Ext.grid.column.Action, {
 
 	buttonText: 'myButton',
@@ -609,6 +625,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	this._destroyComponent('#trigger-value-combobox');
     	this.processDefinition.rallyField = newValue;  
     	
+    	
     	this.down('#rule_type_detail_box').add({
 	        xtype: 'rallyfieldvaluecombobox',
 	        itemId: 'trigger-value-combobox',
@@ -623,9 +640,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
             				this.processDefinition.getCurrentRequiredFields(newValue));}
             }
     	});
-    	if (this.getCurrentRequiredFields().length > 0){
-    		
-    	}
+
     },
     _requiredFieldChanged: function(obj,row,val){
     	this.logger.log('_requiredFieldChanged',row,val);
@@ -735,7 +750,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
          		if (Ext.Array.contains(valid_trigger_attribute_types, attribute_type) && 
          				!field_def.ReadOnly && 
          				!field_def.Hidden &&
-         				field_def.Constrained){
+         				(field_def.Constrained || attribute_type == 'BOOLEAN')){
 
 					data.push({
 						'DisplayName': field.displayName, 
@@ -877,6 +892,9 @@ Ext.define('Rally.technicalservices.ProcessDefinition',{
     getCurrentRequiredFields: function(key){
     	if (key == undefined){
     		key = 'required';
+    	}
+    	if (this.processDetail == null){
+    		this.processDetail = {};
     	}
     	if (this.processDetail[key]==undefined){
     		this.processDetail[key]=[];
