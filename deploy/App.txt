@@ -3,11 +3,11 @@
 <head>
     <title>Process Initiator Configurator</title>
     <!--  (c) 2014 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Mon Nov 10 2014 22:50:22 GMT-0800 (PST) -->
+    <!--  Build Date: Fri Nov 14 2014 11:22:39 GMT-0700 (MST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Mon Nov 10 2014 22:50:22 GMT-0800 (PST)";
-        var CHECKSUM = 39999431859;
+        var APP_BUILD_DATE = "Fri Nov 14 2014 11:22:39 GMT-0700 (MST)";
+        var CHECKSUM = 40067485132;
     </script>
     
     <script type="text/javascript" src="/apps/2.0rc3/sdk.js"></script>
@@ -826,7 +826,8 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
 	         columnCfgs: columns,
 	         store: store,
 	         height: 255,
-	         autoScroll: true
+	         autoScroll: true,
+	         showPagingToolbar: false
     	});
     },
     _destroyComponent: function(name){

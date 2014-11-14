@@ -380,7 +380,8 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
 	         columnCfgs: columns,
 	         store: store,
 	         height: 255,
-	         autoScroll: true
+	         autoScroll: true,
+	         showPagingToolbar: false
     	});
     },
     _destroyComponent: function(name){
