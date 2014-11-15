@@ -20,8 +20,6 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
    	     this.title = 'Process Rule Details';
          this.callParent(arguments);
          this._initializeItems();
-     	 this.addEvents('processDefinitionUpdated');
-
     },
     _initializeItems: function(){
     	
@@ -200,7 +198,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	});
 
     },
-    _requiredFieldChanged: function(obj,row,val){
+    _requiredFieldChanged: function(row,val){
     	this.logger.log('_requiredFieldChanged',row,val);
     	
     	var pd_key = 'required';
@@ -210,11 +208,12 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	
     	var grid = this.down('#field-picker-grid');
     	var required_field = grid.getStore().getAt(row).get('Name');
-    	
+    	console.log(row, required_field,grid.getStore().getAt(row).get('Required') );
     	this._setRequiredField(pd_key,required_field,val);
     	
     },
     _setRequiredField: function(key,required_field,is_required){
+    	this.logger.log('_setRequiredField (key, required_field, is_required)', key, required_field, is_required);
     	if (this.processDefinition.processDetail == null){
     		this.processDefinition.processDetail = {};
     	}
@@ -233,6 +232,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     			}
     		}
     	}
+    	console.log('setrequiredfield', this.processDefinition);
     },
     _save: function(){
     	this.logger.log('_save');
@@ -243,13 +243,14 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	Rally.technicalservices.util.PreferenceSaving.saveAsJSON(pref_name, this.processDefinition, this.workspace).then({
     		scope: this,
     		success: function(){
-    	    	this.fireEvent('processDefinitionUpdated');
+    	    	this._cancel(); //this.fireEvent('processDefinitionUpdated');
     		},
     		failure: function(error){
     			alert('ProcessDefinitionUpdateFailed: ' + error);
+    			this._cancel();
     		}
     	});
-    	this._cancel();
+    	//this._cancel();
     },
      _cancel: function(){
     	this.destroy();
@@ -280,13 +281,15 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
      	var columns = [{
             text: 'Required',
             dataIndex: 'Required',
-            xtype : 'checkcolumn',
+            xtype: 'checkcolumn',
             width: 100,
             listeners: {
             	scope: this,
-            	checkchange: this._requiredFieldChanged
+            	checkchange: function(chkcol, row, checked){
+            		this._requiredFieldChanged(row, checked);
+            	}
             }
-        },{ 
+     	},{ 
             text: 'Name',
             dataIndex: 'DisplayName',
             flex: 1
@@ -295,6 +298,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
      },
      
     _getTriggerFieldStore: function(fields){
+    	this.logger.log('_getTriggerFieldStore', fields);
     	var forbidden_schemas = ['Artifact','TestFolder','Workspace','Subscription','SchedulableArtifact'
     	                         ,'TestCase','TestCaseResult','HierarchicalRequirement','PortfolioItem-Feature'];
     	var valid_trigger_attribute_types = ['STRING','BOOLEAN','OBJECT','STATE'];
@@ -327,6 +331,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	
     },
     _getFieldPickerStore: function(fields, isAddNew, current_required_fields){
+    	this.logger.log('_getFieldPickerStore', fields.length);
     	var forbidden_schemas = ['Artifact','TestFolder','Workspace','Subscription','SchedulableArtifact'
     	                         ,'TestCase','TestCaseResult','HierarchicalRequirement','PortfolioItem-Feature'];
     	var forbidden_attribute_types = ['BINARY_DATA','COLLECTION','WEB_LINK'];
@@ -334,9 +339,10 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	var data = []; 
     	Ext.each(fields, function(field){
     		var field_def = field.attributeDefinition;
-    		console.log('getfieldpickerstore',field,field_def);
+
     		if (field_def) {
-         		var attribute_type = field_def.AttributeType; 
+         		
+    			var attribute_type = field_def.AttributeType; 
          		if ( field_def.ReadOnly || field_def.Hidden || field_def.VisibleOnlyToAdmins ||
          			(attribute_type == 'OBJECT' && Ext.Array.contains(forbidden_schemas, field_def.SchemaType)) ||
          			Ext.Array.contains(forbidden_attribute_types, attribute_type) ||
@@ -346,7 +352,7 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
 					var required = (Ext.Array.contains(current_required_fields, field.name)) || 
 							(field_def.Required && isAddNew)
 							
-					if (field_def.Required && isAddNew) {
+					if (required) {
 						this._setRequiredField('required',field.name,true);
 					}
 					
@@ -361,7 +367,16 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
 
     	var store = Ext.create('Rally.data.custom.Store', {
             data: data,
-            autoLoad: true 
+            autoLoad: true,
+            pageSize: 500,
+            remoteSort: false,
+            sorters: [{
+            	property: 'Required',
+            	direction: 'DESC'
+            },{
+            	property: 'Name',
+            	direction: 'ASC'
+            }]
     	});
     	return store;
     },
@@ -381,7 +396,8 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
 	         store: store,
 	         height: 255,
 	         autoScroll: true,
-	         showPagingToolbar: false
+	         showPagingToolbar: false,
+	         margin: 25
     	});
     },
     _destroyComponent: function(name){

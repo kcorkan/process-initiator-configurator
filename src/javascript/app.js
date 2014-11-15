@@ -20,7 +20,7 @@ Ext.define('CustomApp', {
    	   		modal: true,
    	   		listeners: {
    	   			scope: this,
-   	   			processDefinitionUpdated: this._displayProcessList
+   	   			destroy: this._displayProcessList
    	   		}
    	   	});
 	   	dlg.show();    
@@ -31,6 +31,7 @@ Ext.define('CustomApp', {
     	
     	var key = grid.getStore().getAt(row).get('key');
     	var pd = this.processDefinitionCache.get(key);
+    	console.log('processdefintions', pd);
    	   	dlg = Ext.create('Rally.technicalservices.dialog.ProcessDefinition', {
    	   		y: 0,
    	   		workspace: this.getContext().getWorkspace(),
@@ -38,7 +39,7 @@ Ext.define('CustomApp', {
    	   		modal: true,
    	   		listeners: {
    	   			scope: this,
-   	   			processDefinitionUpdated: this._displayProcessList
+   	   			destroy: this._displayProcessList
    	   		}
     	   	});
 	   	dlg.show();    

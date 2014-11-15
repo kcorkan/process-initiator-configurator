@@ -59,7 +59,7 @@ Ext.define('Rally.technicalservices.util.PreferenceSaving',{
             scope: this,
             success: function(){
                 this.logger.log('preferences cleaned, now saving new ones');
-                this.save(prefs,workspace, appId,filterByUser,project).then({
+                this.save(prefs,workspace,appId,filterByUser,project).then({
                     scope: this,
                     success: function(){
                         deferred.resolve();
