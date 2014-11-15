@@ -3,11 +3,11 @@
 <head>
     <title>Process Initiator Configurator</title>
     <!--  (c) 2014 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Fri Nov 14 2014 19:16:45 GMT-0700 (MST) -->
+    <!--  Build Date: Fri Nov 14 2014 19:22:15 GMT-0700 (MST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Fri Nov 14 2014 19:16:45 GMT-0700 (MST)";
-        var CHECKSUM = 41204036410;
+        var APP_BUILD_DATE = "Fri Nov 14 2014 19:22:15 GMT-0700 (MST)";
+        var CHECKSUM = 41408476256;
     </script>
     
     <script type="text/javascript" src="/apps/2.0rc3/sdk.js"></script>
@@ -686,13 +686,16 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	this.processDefinition.shortName = this.down('#short-name-textfield').value;
 
     	var pref_name = Rally.technicalservices.ProcessDefinition.getProcessDefinitionPrefix(this.processDefinition.rallyType) + this.processDefinition.processName;
+    	this.setLoading("Saving...");
     	Rally.technicalservices.util.PreferenceSaving.saveAsJSON(pref_name, this.processDefinition, this.workspace).then({
     		scope: this,
     		success: function(){
+    	    	this.setLoading(false);
     	    	this._cancel(); //this.fireEvent('processDefinitionUpdated');
     		},
     		failure: function(error){
     			alert('ProcessDefinitionUpdateFailed: ' + error);
+    	    	this.setLoading(false);
     			this._cancel();
     		}
     	});

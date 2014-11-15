@@ -240,13 +240,16 @@ Ext.define('Rally.technicalservices.dialog.ProcessDefinition',{
     	this.processDefinition.shortName = this.down('#short-name-textfield').value;
 
     	var pref_name = Rally.technicalservices.ProcessDefinition.getProcessDefinitionPrefix(this.processDefinition.rallyType) + this.processDefinition.processName;
+    	this.setLoading("Saving...");
     	Rally.technicalservices.util.PreferenceSaving.saveAsJSON(pref_name, this.processDefinition, this.workspace).then({
     		scope: this,
     		success: function(){
+    	    	this.setLoading(false);
     	    	this._cancel(); //this.fireEvent('processDefinitionUpdated');
     		},
     		failure: function(error){
     			alert('ProcessDefinitionUpdateFailed: ' + error);
+    	    	this.setLoading(false);
     			this._cancel();
     		}
     	});
